@@ -14,6 +14,7 @@
 		87395C3B2BBCDAFC005F2025 /* momentumTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87395C3A2BBCDAFC005F2025 /* momentumTests.swift */; };
 		87395C452BBCDAFC005F2025 /* momentumUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87395C442BBCDAFC005F2025 /* momentumUITests.swift */; };
 		87395C472BBCDAFC005F2025 /* momentumUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87395C462BBCDAFC005F2025 /* momentumUITestsLaunchTests.swift */; };
+		877CD11F2BBCF052009EA1A8 /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 877CD11E2BBCF052009EA1A8 /* SpeechRecognizer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +45,8 @@
 		87395C402BBCDAFC005F2025 /* momentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = momentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		87395C442BBCDAFC005F2025 /* momentumUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = momentumUITests.swift; sourceTree = "<group>"; };
 		87395C462BBCDAFC005F2025 /* momentumUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = momentumUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		877CD11D2BBCF00C009EA1A8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		877CD11E2BBCF052009EA1A8 /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -94,8 +97,10 @@
 		87395C282BBCDAFA005F2025 /* momentum */ = {
 			isa = PBXGroup;
 			children = (
+				877CD11D2BBCF00C009EA1A8 /* Info.plist */,
 				87395C292BBCDAFA005F2025 /* momentumApp.swift */,
 				87395C2B2BBCDAFA005F2025 /* MomentumView.swift */,
+				877CD11E2BBCF052009EA1A8 /* SpeechRecognizer.swift */,
 				87395C2D2BBCDAFC005F2025 /* Assets.xcassets */,
 				87395C2F2BBCDAFC005F2025 /* Preview Content */,
 			);
@@ -259,6 +264,7 @@
 			files = (
 				87395C2C2BBCDAFA005F2025 /* MomentumView.swift in Sources */,
 				87395C2A2BBCDAFA005F2025 /* momentumApp.swift in Sources */,
+				877CD11F2BBCF052009EA1A8 /* SpeechRecognizer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -425,6 +431,9 @@
 				DEVELOPMENT_TEAM = JZUXQ9JH9H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = momentum/Info.plist;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Momentum would like to use your microphone for user input.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Momentum would like to optimize your speech.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -454,6 +463,9 @@
 				DEVELOPMENT_TEAM = JZUXQ9JH9H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = momentum/Info.plist;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Momentum would like to use your microphone for user input.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Momentum would like to optimize your speech.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
