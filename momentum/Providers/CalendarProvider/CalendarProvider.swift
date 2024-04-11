@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 /// Represents a calendar in the user's calendar system.
 struct Calendar: Identifiable {
