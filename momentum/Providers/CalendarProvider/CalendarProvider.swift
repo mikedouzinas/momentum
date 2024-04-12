@@ -64,11 +64,11 @@ enum RecurringEventEditScope {
 }
 
 protocol CalendarProvider {
-    func getCalendars() -> [Calendar]
-    func getDefaultCalendar() -> Calendar
-    func getEvents(for calendar: Calendar, startDate: Date, endDate: Date, limit: Int?) -> [CalendarEvent]
-    func getEvent(with id: String) -> CalendarEvent?
-    func createEvent(with event: CalendarEvent) -> CalendarEvent
-    func updateEvent(with event: CalendarEvent, recurrenceEditingScope: RecurringEventEditScope?) -> CalendarEvent
-    func deleteEvent(with id: String)
+    func getCalendars() async throws -> [Calendar]
+    func getDefaultCalendar() async -> Calendar
+    func getEvents(for calendar: Calendar, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent]
+    func getEvent(with id: String) async throws -> CalendarEvent?
+    func createEvent(with event: CalendarEvent) async throws -> CalendarEvent
+    func updateEvent(with event: CalendarEvent, recurrenceEditingScope: RecurringEventEditScope?) async throws -> CalendarEvent
+    func deleteEvent(in calendar: Calendar, id: String) async throws
 }
