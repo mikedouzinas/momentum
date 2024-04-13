@@ -146,7 +146,11 @@ class AppleCalendarProvider: CalendarProvider {
         ekEvent.notes = calendarEvent.notes
         ekEvent.timeZone = calendarEvent.timeZone
         ekEvent.calendar = eventStore.calendar(withIdentifier: calendarEvent.calendar.id)
-
-        // Handle conversion
+        
+        if calendarEvent.isRecurring {
+            updateRecurrenceRules(for: ekEvent, with: calendarEvent.recurrenceRules)
+        } else {
+            ekEvent.recurrenceRules = nil
+        }
     }
 }
