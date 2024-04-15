@@ -12,6 +12,7 @@ class AppleCalendarProvider: CalendarProvider {
     private let eventStore = EKEventStore()
 
     func getCalendars() async throws -> [Calendar] {
+        try await requestAccessIfNeeded()
         return eventStore.calendars(for: .event).map { ekCalendar in
             Calendar(
                 id: ekCalendar.calendarIdentifier,
@@ -26,6 +27,7 @@ class AppleCalendarProvider: CalendarProvider {
     }
 
     func getDefaultCalendar() async -> Calendar {
+        try await requestAccessIfNeeded()
         let defaultCalendar = eventStore.defaultCalendarForNewEvents!
         return Calendar(
             id: defaultCalendar.calendarIdentifier,
@@ -39,6 +41,7 @@ class AppleCalendarProvider: CalendarProvider {
     }
 
     func getEvents(for calendar: Calendar, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent] {
+        try await requestAccessIfNeeded()
         let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: [eventStore.calendar(withIdentifier: calendar.id)!])
         let ekEvents = eventStore.events(matching: predicate)
         let limitedEvents = limit != nil ? Array(ekEvents.prefix(limit!)) : ekEvents
@@ -48,11 +51,13 @@ class AppleCalendarProvider: CalendarProvider {
     }
 
     func getEvent(with id: String) async throws -> CalendarEvent? {
+        try await requestAccessIfNeeded()
         guard let ekEvent = eventStore.event(withIdentifier: id) else { return nil }
         return convertToCalendarEvent(ekEvent: ekEvent)
     }
 
     func createEvent(with event: CalendarEvent) async throws -> CalendarEvent {
+        try await requestAccessIfNeeded()
         let ekEvent = EKEvent(eventStore: eventStore)
         updateEKEvent(ekEvent: ekEvent, with: event)
         try eventStore.save(ekEvent, span: .thisEvent)
@@ -60,6 +65,7 @@ class AppleCalendarProvider: CalendarProvider {
     }
 
     func updateEvent(with event: CalendarEvent, recurrenceEditingScope: RecurringEventEditScope?) async throws -> CalendarEvent {
+        try await requestAccessIfNeeded()
         guard let ekEvent = eventStore.event(withIdentifier: event.id) else { throw NSError(domain: "AppleCalendarProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "Event not found"]) }
         updateEKEvent(ekEvent: ekEvent, with: event)
         let span: EKSpan = recurrenceEditingScope == .thisAndFuture ? .futureEvents : .thisEvent
@@ -68,6 +74,7 @@ class AppleCalendarProvider: CalendarProvider {
     }
 
     func deleteEvent(in calendar: Calendar, id: String) async throws {
+        try await requestAccessIfNeeded()
         guard let ekEvent = eventStore.event(withIdentifier: id) else { return }
         try eventStore.remove(ekEvent, span: .thisEvent)
     }
@@ -151,6 +158,55 @@ class AppleCalendarProvider: CalendarProvider {
             updateRecurrenceRules(for: ekEvent, with: calendarEvent.recurrenceRules)
         } else {
             ekEvent.recurrenceRules = nil
+        }
+    }
+    private func updateRecurrenceRules(for ekEvent: EKEvent, with recurrenceRules: [RecurrenceRule]) {
+        ekEvent.recurrenceRules = recurrenceRules.compactMap { rule -> EKRecurrenceRule? in
+            let frequency: EKRecurrenceFrequency
+            switch rule.frequency {
+            case .daily: frequency = .daily
+            case .weekly: frequency = .weekly
+            case .monthly: frequency = .monthly
+            case .yearly: frequency = .yearly
+            }
+
+            var ekDaysOfTheWeek: [EKRecurrenceDayOfWeek]? = nil
+            if let daysOfTheWeek = rule.daysOfTheWeek {
+                ekDaysOfTheWeek = daysOfTheWeek.map { EKRecurrenceDayOfWeek(dayOfTheWeek: EKWeekday(rawValue: $0.dayOfTheWeek)!, weekNumber: $0.weekNumber) }
+            }
+
+            let ekRecurrenceEnd = rule.endDate != nil ? EKRecurrenceEnd(end: rule.endDate!) : nil
+
+            // Convert [Int]? to [NSNumber]? for the parameters expected by EKRecurrenceRule
+            let ekDaysOfTheMonth = rule.daysOfTheMonth?.map(NSNumber.init)
+            let ekWeeksOfTheYear = rule.weeksOfTheYear?.map(NSNumber.init)
+            let ekDaysOfTheYear = rule.daysOfTheYear?.map(NSNumber.init)
+            let ekSetPositions = rule.setPositions?.map(NSNumber.init)
+
+            return EKRecurrenceRule(
+                recurrenceWith: frequency,
+                interval: rule.interval,
+                daysOfTheWeek: ekDaysOfTheWeek,
+                daysOfTheMonth: ekDaysOfTheMonth,
+                monthsOfTheYear: nil, // Structure does not include monthsOfTheYear.
+                weeksOfTheYear: ekWeeksOfTheYear,
+                daysOfTheYear: ekDaysOfTheYear,
+                setPositions: ekSetPositions,
+                end: ekRecurrenceEnd
+            )
+        }
+    }
+    
+    private func requestAccessIfNeeded() async throws {
+        let status = await EKEventStore.authorizationStatus(for: .event)
+        if status == .notDetermined || status == .denied {
+            let (granted, error) = await eventStore.requestAccess(to: .event)
+            if let error = error {
+                throw error
+            }
+            guard granted else {
+                throw NSError(domain: "AppleCalendarProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "Access to calendar is denied by the user"])
+            }
         }
     }
 }
