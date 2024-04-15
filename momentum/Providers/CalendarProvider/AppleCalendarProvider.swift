@@ -11,10 +11,15 @@ import EventKit
 class AppleCalendarProvider: CalendarProvider {
     private let eventStore = EKEventStore()
 
-    func getCalendars() async throws -> [Calendar] {
-        try await requestAccessIfNeeded()
+    func getCalendars() async throws -> [CalendarM] {
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         return eventStore.calendars(for: .event).map { ekCalendar in
-            Calendar(
+            CalendarM(
                 id: ekCalendar.calendarIdentifier,
                 title: ekCalendar.title,
                 canAddEvents: ekCalendar.allowsContentModifications,
@@ -26,10 +31,15 @@ class AppleCalendarProvider: CalendarProvider {
         }
     }
 
-    func getDefaultCalendar() async -> Calendar {
-        try await requestAccessIfNeeded()
+    func getDefaultCalendar() async -> CalendarM {
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         let defaultCalendar = eventStore.defaultCalendarForNewEvents!
-        return Calendar(
+        return CalendarM(
             id: defaultCalendar.calendarIdentifier,
             title: defaultCalendar.title,
             canAddEvents: defaultCalendar.allowsContentModifications,
@@ -40,8 +50,13 @@ class AppleCalendarProvider: CalendarProvider {
         )
     }
 
-    func getEvents(for calendar: Calendar, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent] {
-        try await requestAccessIfNeeded()
+    func getEvents(for calendar: CalendarM, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent] {
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: [eventStore.calendar(withIdentifier: calendar.id)!])
         let ekEvents = eventStore.events(matching: predicate)
         let limitedEvents = limit != nil ? Array(ekEvents.prefix(limit!)) : ekEvents
@@ -51,13 +66,23 @@ class AppleCalendarProvider: CalendarProvider {
     }
 
     func getEvent(with id: String) async throws -> CalendarEvent? {
-        try await requestAccessIfNeeded()
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         guard let ekEvent = eventStore.event(withIdentifier: id) else { return nil }
         return convertToCalendarEvent(ekEvent: ekEvent)
     }
 
     func createEvent(with event: CalendarEvent) async throws -> CalendarEvent {
-        try await requestAccessIfNeeded()
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         let ekEvent = EKEvent(eventStore: eventStore)
         updateEKEvent(ekEvent: ekEvent, with: event)
         try eventStore.save(ekEvent, span: .thisEvent)
@@ -65,7 +90,12 @@ class AppleCalendarProvider: CalendarProvider {
     }
 
     func updateEvent(with event: CalendarEvent, recurrenceEditingScope: RecurringEventEditScope?) async throws -> CalendarEvent {
-        try await requestAccessIfNeeded()
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         guard let ekEvent = eventStore.event(withIdentifier: event.id) else { throw NSError(domain: "AppleCalendarProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "Event not found"]) }
         updateEKEvent(ekEvent: ekEvent, with: event)
         let span: EKSpan = recurrenceEditingScope == .thisAndFuture ? .futureEvents : .thisEvent
@@ -73,8 +103,13 @@ class AppleCalendarProvider: CalendarProvider {
         return convertToCalendarEvent(ekEvent: ekEvent)
     }
 
-    func deleteEvent(in calendar: Calendar, id: String) async throws {
-        try await requestAccessIfNeeded()
+    func deleteEvent(in calendar: CalendarM, id: String) async throws {
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         guard let ekEvent = eventStore.event(withIdentifier: id) else { return }
         try eventStore.remove(ekEvent, span: .thisEvent)
     }
@@ -82,7 +117,7 @@ class AppleCalendarProvider: CalendarProvider {
     // MARK: - Helper Methods
 
     private func convertToCalendarEvent(ekEvent: EKEvent) -> CalendarEvent {
-        let calendar = Calendar(
+        let calendar = CalendarM(
             id: ekEvent.calendar.calendarIdentifier,
             title: ekEvent.calendar.title,
             canAddEvents: ekEvent.calendar.allowsContentModifications,
@@ -197,16 +232,26 @@ class AppleCalendarProvider: CalendarProvider {
         }
     }
     
-    private func requestAccessIfNeeded() async throws {
-        let status = await EKEventStore.authorizationStatus(for: .event)
-        if status == .notDetermined || status == .denied {
-            let (granted, error) = await eventStore.requestAccess(to: .event)
-            if let error = error {
-                throw error
+    private func requestCalendarAccessIfNeeded(completion: @escaping (Bool, Error?) -> Void) {
+        // Check the current authorization status
+        let status = EKEventStore.authorizationStatus(for: .event)
+        
+        switch status {
+        case .authorized:
+            // Access has already been granted
+            completion(true, nil)
+        case .notDetermined:
+            // Request access if the status is not determined
+            eventStore.requestFullAccessToEvents{ (granted, error) in
+                DispatchQueue.main.async {
+                    completion(granted, error)
+                }
             }
-            guard granted else {
-                throw NSError(domain: "AppleCalendarProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "Access to calendar is denied by the user"])
-            }
+        default:
+            // Access denied or restricted
+            completion(false, nil)
         }
     }
+    
+
 }

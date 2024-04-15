@@ -5,14 +5,19 @@
 //  Created by Mike Veson on 4/15/24.
 //
 
-import Foundation
 import EventKit
+import Foundation
 
 class AppleReminderProvider: TodoProvider {
     private let eventStore = EKEventStore()
 
     func getTodoSources() async throws -> [TodoSource] {
-        try await requestAccessIfNeeded()
+        requestRemindersAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Reminders denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         return eventStore.calendars(for: .reminder).map { calendar in
             TodoSource(
                 id: calendar.calendarIdentifier,
@@ -27,7 +32,12 @@ class AppleReminderProvider: TodoProvider {
     }
 
     func getDefaultTodoSource() async throws -> TodoSource {
-        try await requestAccessIfNeeded()
+        requestRemindersAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Reminders denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         guard let defaultCalendar = eventStore.defaultCalendarForNewReminders() else {
             throw NSError(domain: "AppleReminderProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No default todo source available"])
         }
@@ -43,7 +53,12 @@ class AppleReminderProvider: TodoProvider {
     }
 
     func getTodos(for source: TodoSource) async throws -> [Todo] {
-        try await requestAccessIfNeeded()
+        requestRemindersAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Reminders denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         let predicate = eventStore.predicateForReminders(in: [eventStore.calendar(withIdentifier: source.id)!])
 
         let reminders = try await withCheckedThrowingContinuation { continuation in
@@ -71,7 +86,12 @@ class AppleReminderProvider: TodoProvider {
 
 
     func createTodo(for source: TodoSource) async throws -> Todo {
-        try await requestAccessIfNeeded()
+        requestRemindersAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Reminders denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         let reminder = EKReminder(eventStore: eventStore)
         reminder.calendar = eventStore.calendar(withIdentifier: source.id)
         try eventStore.save(reminder, commit: true)
@@ -87,7 +107,12 @@ class AppleReminderProvider: TodoProvider {
     }
 
     func updateTodo(todo: Todo) async throws -> Todo {
-        try await requestAccessIfNeeded()
+        requestRemindersAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Reminders denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         guard let reminder = eventStore.calendarItem(withIdentifier: todo.id) as? EKReminder else {
             throw NSError(domain: "AppleReminderProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "Todo not found"])
         }
@@ -105,21 +130,36 @@ class AppleReminderProvider: TodoProvider {
     }
 
     func deleteTodo(in source: TodoSource, id: String) async throws {
-        try await requestAccessIfNeeded()
+        requestRemindersAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Reminders denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         guard let reminder = eventStore.calendarItem(withIdentifier: id) as? EKReminder else {
             throw NSError(domain: "AppleReminderProvider", code: 2, userInfo: [NSLocalizedDescriptionKey: "Todo not found"])
         }
         try eventStore.remove(reminder, commit: true)
     }
 
-    // Helper function to ensure the app has the necessary permissions
-    private func requestAccessIfNeeded() async throws {
-        let status = await EKEventStore.authorizationStatus(for: .reminder)
-        if status == .notDetermined || status == .denied {
-            let (granted, error) = await eventStore.requestAccess(to: .reminder)
-            if !granted || error != nil {
-                throw NSError(domain: "AppleReminderProvider", code: 3, userInfo: [NSLocalizedDescriptionKey: "Access to reminders is denied or not determined"])
+    func requestRemindersAccessIfNeeded(completion: @escaping (Bool, Error?) -> Void) {
+        // Check the current authorization status
+        let status = EKEventStore.authorizationStatus(for: .reminder)
+        
+        switch status {
+        case .authorized:
+            // Access has already been granted
+            completion(true, nil)
+        case .notDetermined:
+            // Request access if the status is not determined
+            eventStore.requestFullAccessToReminders { (granted, error) in
+                DispatchQueue.main.async {
+                    completion(granted, error)
+                }
             }
+        default:
+            // Access denied or restricted
+            completion(false, nil)
         }
     }
 }
