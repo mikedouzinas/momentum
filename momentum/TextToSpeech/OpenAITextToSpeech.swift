@@ -45,6 +45,7 @@ class OpenAITextToSpeech: TextToSpeech {
     }
     
     private var speechCreationQueue: [SpeechCreationQueueElement] = []
+    
     func createSpeech(_ str: String) async -> Data {
         let id = UUID().uuidString
         speechCreationQueue.append(.init(str: str, id: id))
