@@ -2,7 +2,7 @@ import Foundation
 import CoreGraphics
 
 /// Represents a calendar in the user's calendar system.
-struct CalendarM: Identifiable {
+struct AppCalendar: Identifiable {
     let id: String
     let title: String
     let canAddEvents: Bool
@@ -34,9 +34,20 @@ struct RecurrenceRule {
     let endDate: Date?
 }
 
-struct CalendarEvent: Identifiable {
+struct CalendarEvent: Identifiable, Comparable {
+    static func < (lhs: CalendarEvent, rhs: CalendarEvent) -> Bool {
+        if lhs.startDate != rhs.startDate {
+            return lhs.startDate < rhs.startDate
+        }
+        return lhs.endDate < rhs.endDate
+    }
+    
+    static func == (lhs: CalendarEvent, rhs: CalendarEvent) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
     let id: String
-    let calendar: CalendarM
+    let calendar: AppCalendar
 
     var title: String
     var timeZone: TimeZone?
@@ -64,13 +75,13 @@ enum RecurringEventEditScope {
 }
 
 protocol CalendarProvider {
-    func getCalendars() async throws -> [CalendarM]
-    func getDefaultCalendar() async -> CalendarM
-    func getEvents(for calendar: CalendarM, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent]
+    func getCalendars() async throws -> [AppCalendar]
+    func getDefaultCalendar() async -> AppCalendar
+    func getEvents(for calendar: AppCalendar, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent]
     func getEvent(with id: String) async throws -> CalendarEvent?
     func createEvent(with event: CalendarEvent) async throws -> CalendarEvent
     func updateEvent(with event: CalendarEvent, recurrenceEditingScope: RecurringEventEditScope?) async throws -> CalendarEvent
-    func deleteEvent(in calendar: CalendarM, id: String) async throws
+    func deleteEvent(in calendar: AppCalendar, id: String) async throws
 }
 
 extension CalendarProvider {
@@ -86,13 +97,7 @@ extension CalendarProvider {
             for try await events in taskGroup {
                 results.append(contentsOf: events)
             }
-            results.sort { lhs, rhs in
-                // return whether lhs < rhs
-                if lhs.startDate != rhs.startDate {
-                    return lhs.startDate < rhs.startDate
-                }
-                return lhs.endDate < rhs.endDate
-            }
+            results.sort()
             
             if let limit = limit {
                 results = Array(results[..<limit])

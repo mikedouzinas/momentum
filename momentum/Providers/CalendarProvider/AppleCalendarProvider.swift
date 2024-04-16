@@ -4,7 +4,7 @@ import EventKit
 class AppleCalendarProvider: CalendarProvider {
     private let eventStore = EKEventStore()
 
-    func getCalendars() async throws -> [CalendarM] {
+    func getCalendars() async throws -> [AppCalendar] {
         requestCalendarAccessIfNeeded { granted, error in
             if !granted {
                 print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
@@ -12,7 +12,7 @@ class AppleCalendarProvider: CalendarProvider {
             }
         }
         return eventStore.calendars(for: .event).map { ekCalendar in
-            CalendarM(
+            AppCalendar(
                 id: ekCalendar.calendarIdentifier,
                 title: ekCalendar.title,
                 canAddEvents: ekCalendar.allowsContentModifications,
@@ -24,7 +24,7 @@ class AppleCalendarProvider: CalendarProvider {
         }
     }
 
-    func getDefaultCalendar() async -> CalendarM {
+    func getDefaultCalendar() async -> AppCalendar {
         requestCalendarAccessIfNeeded { granted, error in
             if !granted {
                 print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
@@ -32,7 +32,7 @@ class AppleCalendarProvider: CalendarProvider {
             }
         }
         let defaultCalendar = eventStore.defaultCalendarForNewEvents!
-        return CalendarM(
+        return AppCalendar(
             id: defaultCalendar.calendarIdentifier,
             title: defaultCalendar.title,
             canAddEvents: defaultCalendar.allowsContentModifications,
@@ -43,7 +43,7 @@ class AppleCalendarProvider: CalendarProvider {
         )
     }
 
-    func getEvents(for calendar: CalendarM, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent] {
+    func getEvents(for calendar: AppCalendar, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent] {
         requestCalendarAccessIfNeeded { granted, error in
             if !granted {
                 print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
@@ -96,7 +96,7 @@ class AppleCalendarProvider: CalendarProvider {
         return convertToCalendarEvent(ekEvent: ekEvent)
     }
 
-    func deleteEvent(in calendar: CalendarM, id: String) async throws {
+    func deleteEvent(in calendar: AppCalendar, id: String) async throws {
         requestCalendarAccessIfNeeded { granted, error in
             if !granted {
                 print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
@@ -110,7 +110,7 @@ class AppleCalendarProvider: CalendarProvider {
     // MARK: - Helper Methods
 
     private func convertToCalendarEvent(ekEvent: EKEvent) -> CalendarEvent {
-        let calendar = CalendarM(
+        let calendar = AppCalendar(
             id: ekEvent.calendar.calendarIdentifier,
             title: ekEvent.calendar.title,
             canAddEvents: ekEvent.calendar.allowsContentModifications,
