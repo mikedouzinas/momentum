@@ -47,7 +47,7 @@ class SpeechRecognizer: ObservableObject {
         recognitionRequest = nil
 
         // Setup the audio session as before
-        try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+        try audioSession.setCategory(.playAndRecord, mode: .voiceChat)
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
 
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
@@ -92,6 +92,7 @@ class SpeechRecognizer: ObservableObject {
     func stopRecording() {
         audioEngine.inputNode.removeTap(onBus: 0) // Ensure any existing tap is removed
         audioEngine.stop()
+        audioEngine.reset()
         recognitionRequest?.endAudio()
         try? audioSession.setActive(false)
         recognitionTask = nil // End any existing recognition tasks

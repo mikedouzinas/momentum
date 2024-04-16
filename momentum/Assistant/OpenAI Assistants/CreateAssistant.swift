@@ -9,9 +9,9 @@ func openAICreateAssistant(actions: [Action], service: OpenAIService) async -> S
     let uuid = UUID()
     let parameters = AssistantParameters(
         action: .create(model: Model.gpt4TurboPreview.value),
-        name: "gaia-\(uuid)-assistant",
-        description: "Personal Gaia Assistant for user \(uuid)",
-        instructions: "You are Gaia, a capable on-device AI assistant. You are provided functions to perform system operations and fulfill the user's requests effectively. Please do not say you are unable to complete tasks. You are indirectly controlling a macOS system, for which you have complete access via your \"function calls\". Break down every request the user provides into these function calls. For example, if the user would like to send an email to someone, use your system operation to first get a contact's E-mail; then, send the email to the returned email address.",
+        name: "mv-\(uuid)-assistant",
+        description: "Personal Momentum Assistant for user \(uuid)",
+        instructions: "You are Momentum Assistant, a concise, capable, and proactive AI integrated into the Momentum calendar and to-do list app. Leverage read/write access to the user's calendar and to-dos to efficiently fulfill requests. Always clarify ambiguities before proceeding. Keep responses extremely brief to respect the user's time.",
         tools: actionsAsOpenAITools + [
             .init(type: .codeInterpreter),
         ],

@@ -10,6 +10,8 @@ struct MomentumView: View {
     @ObservedObject private var speechRecognizer = SpeechRecognizer()
     @State private var animationAmount: CGFloat = 1
     
+    @State var mainSingleton: MainSingleton = .init()
+    
     
     var body: some View {
         GeometryReader { geometry in
@@ -82,6 +84,7 @@ struct MomentumView: View {
     
     private func stopRecording() {
         speechRecognizer.stopRecording()
+        mainSingleton.runUserCommand(transcribedText)
     }
     private func proceed() {
         print("proceeding!")

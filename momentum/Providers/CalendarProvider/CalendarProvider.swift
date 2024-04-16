@@ -72,3 +72,33 @@ protocol CalendarProvider {
     func updateEvent(with event: CalendarEvent, recurrenceEditingScope: RecurringEventEditScope?) async throws -> CalendarEvent
     func deleteEvent(in calendar: Calendar, id: String) async throws
 }
+
+extension CalendarProvider {
+    func getAllEvents(startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent] {
+        return try await withThrowingTaskGroup(of: [CalendarEvent].self, returning: [CalendarEvent].self) { taskGroup in
+            for calendar in try await getCalendars() {
+                taskGroup.addTask {
+                    return try await getEvents(for: calendar, startDate: startDate, endDate: endDate, limit: limit)
+                }
+            }
+            
+            var results: [CalendarEvent] = []
+            for try await events in taskGroup {
+                results.append(contentsOf: events)
+            }
+            results.sort { lhs, rhs in
+                // return whether lhs < rhs
+                if lhs.startDate != rhs.startDate {
+                    return lhs.startDate < rhs.startDate
+                }
+                return lhs.endDate < rhs.endDate
+            }
+            
+            if let limit = limit {
+                results = Array(results[..<limit])
+            }
+            
+            return results
+        }
+    }
+}

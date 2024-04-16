@@ -1,10 +1,3 @@
-//
-//  AppleCalendarProvider.swift
-//  momentum
-//
-//  Created by Mike Veson on 4/11/24.
-//
-
 import Foundation
 import EventKit
 
@@ -148,7 +141,7 @@ class AppleCalendarProvider: CalendarProvider {
         ekEvent.calendar = eventStore.calendar(withIdentifier: calendarEvent.calendar.id)
         
         if calendarEvent.isRecurring {
-            updateRecurrenceRules(for: ekEvent, with: calendarEvent.recurrenceRules)
+//            updateRecurrenceRules(for: ekEvent, with: calendarEvent.recurrenceRules)
         } else {
             ekEvent.recurrenceRules = nil
         }
