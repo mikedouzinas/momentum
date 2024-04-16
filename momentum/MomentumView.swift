@@ -4,14 +4,13 @@ import Speech
 
 struct MomentumView: View {
     @State private var isRecording = false
-    @State private var audioText = "Tap button to begin speaking..."
-    @State private var endAudioText = ""
     @State private var transcribedText: String = ""
     @ObservedObject private var speechRecognizer = SpeechRecognizer()
     @State private var animationAmount: CGFloat = 1
     
     @State var mainSingleton: MainSingleton = .init()
     
+    @State private var showLoading = false  // State to control the visibility of the loading view
     
     var body: some View {
         GeometryReader { geometry in
@@ -22,17 +21,23 @@ struct MomentumView: View {
                     Text(transcribedText)
                         .multilineTextAlignment(.leading)
                         .frame(width: geometry.size.width * 0.8, alignment: .leading)
-                        .padding([.leading], 20.0) // Add padding to the left and rights
-                        .padding(.top, 10) // Optional: add padding to the top to ensure consistency
+                        .padding([.leading], 20.0)
+                        .padding(.top, 10)
+                    
+                    if showLoading {
+                        LoadingView()
+                            .frame(width: geometry.size.width * 0.8, height: 350)
+                    }
                 }
                 .frame(width: geometry.size.width * 0.8, height: 350)
                 .background(Color.gray.opacity(0.3))
                 .cornerRadius(10)
                 .padding(.bottom, 60)
-                
+                .allowsHitTesting(!showLoading) // Disable hit testing when loading view is visible
+
                 // Main Button centered in the middle
                 Button(action: toggleRecording) {
-                    Image("logo") // change logo later
+                    Image("logo") // Placeholder for actual logo
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 100, height: 100)
@@ -52,24 +57,21 @@ struct MomentumView: View {
                 Spacer()
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity) // Ensure the GeometryReader takes up all available space
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func toggleRecording() {
-        isRecording.toggle() // Toggle the recording state
+        isRecording.toggle()
         
         if isRecording {
-            // Update UI for recording state
-            audioText = "Recording... Tap to stop."
             startRecording()
         } else {
-            // Update UI for not recording state
-            audioText = "Tap button to begin speaking..."
             stopRecording()
         }
     }
     
     func startRecording() {
+        transcribedText = ""
         speechRecognizer.startRecording { [self] result in
             DispatchQueue.main.async {
                 switch result {
@@ -85,38 +87,9 @@ struct MomentumView: View {
     private func stopRecording() {
         speechRecognizer.stopRecording()
         mainSingleton.runUserCommand(transcribedText)
-    }
-    private func proceed() {
-        print("proceeding!")
-    }
-}
-
-struct CircleTimerView: View {
-    @State private var countdown = 3
-    var onFinish: () -> Void // This closure will be called when the countdown finishes
-    
-    var body: some View {
-        ZStack {
-            Circle()
-                .frame(width: 50, height: 50)
-                .foregroundColor(.gray)
-            
-            Text("\(countdown)")
-                .font(.largeTitle)
-                .foregroundColor(.white)
-        }
-        .onAppear {
-            startCountdown()
-        }
-    }
-    private func startCountdown() {
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-            if countdown > 0 {
-                countdown -= 1
-            } else {
-                timer.invalidate() // Stop the timer
-                onFinish() // Call the function passed as a closure
-            }
+        showLoading = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            showLoading = false
         }
     }
 }
@@ -124,5 +97,34 @@ struct CircleTimerView: View {
 struct MomentumView_Previews: PreviewProvider {
     static var previews: some View {
         MomentumView()
+    }
+}
+
+
+
+struct LoadingView: View {
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(Color.blue) // Assuming the rectangle is black
+                .opacity(0.95)
+                .frame(width: 200, height: 200) // Makes the view square
+                .cornerRadius(20) // Rounded corners
+                .ignoresSafeArea()
+            
+            VStack(spacing: 20) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white)) // White color for loader
+                    .scaleEffect(1.5) // Make the loader slightly larger
+                Text("Working...")
+                    .foregroundColor(.white) // Text color white to contrast with black background
+            }
+        }
+    }
+}
+
+struct LoadingView_Previews: PreviewProvider {
+    static var previews: some View {
+        LoadingView()
     }
 }

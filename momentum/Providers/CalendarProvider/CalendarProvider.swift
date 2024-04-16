@@ -2,7 +2,7 @@ import Foundation
 import CoreGraphics
 
 /// Represents a calendar in the user's calendar system.
-struct Calendar: Identifiable {
+struct CalendarM: Identifiable {
     let id: String
     let title: String
     let canAddEvents: Bool
@@ -36,7 +36,7 @@ struct RecurrenceRule {
 
 struct CalendarEvent: Identifiable {
     let id: String
-    let calendar: Calendar
+    let calendar: CalendarM
 
     var title: String
     var timeZone: TimeZone?
@@ -64,13 +64,13 @@ enum RecurringEventEditScope {
 }
 
 protocol CalendarProvider {
-    func getCalendars() async throws -> [Calendar]
-    func getDefaultCalendar() async -> Calendar
-    func getEvents(for calendar: Calendar, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent]
+    func getCalendars() async throws -> [CalendarM]
+    func getDefaultCalendar() async -> CalendarM
+    func getEvents(for calendar: CalendarM, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent]
     func getEvent(with id: String) async throws -> CalendarEvent?
     func createEvent(with event: CalendarEvent) async throws -> CalendarEvent
     func updateEvent(with event: CalendarEvent, recurrenceEditingScope: RecurringEventEditScope?) async throws -> CalendarEvent
-    func deleteEvent(in calendar: Calendar, id: String) async throws
+    func deleteEvent(in calendar: CalendarM, id: String) async throws
 }
 
 extension CalendarProvider {

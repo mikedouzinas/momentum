@@ -4,9 +4,15 @@ import EventKit
 class AppleCalendarProvider: CalendarProvider {
     private let eventStore = EKEventStore()
 
-    func getCalendars() async throws -> [Calendar] {
+    func getCalendars() async throws -> [CalendarM] {
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         return eventStore.calendars(for: .event).map { ekCalendar in
-            Calendar(
+            CalendarM(
                 id: ekCalendar.calendarIdentifier,
                 title: ekCalendar.title,
                 canAddEvents: ekCalendar.allowsContentModifications,
@@ -18,9 +24,15 @@ class AppleCalendarProvider: CalendarProvider {
         }
     }
 
-    func getDefaultCalendar() async -> Calendar {
+    func getDefaultCalendar() async -> CalendarM {
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         let defaultCalendar = eventStore.defaultCalendarForNewEvents!
-        return Calendar(
+        return CalendarM(
             id: defaultCalendar.calendarIdentifier,
             title: defaultCalendar.title,
             canAddEvents: defaultCalendar.allowsContentModifications,
@@ -31,7 +43,13 @@ class AppleCalendarProvider: CalendarProvider {
         )
     }
 
-    func getEvents(for calendar: Calendar, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent] {
+    func getEvents(for calendar: CalendarM, startDate: Date, endDate: Date, limit: Int?) async throws -> [CalendarEvent] {
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: [eventStore.calendar(withIdentifier: calendar.id)!])
         let ekEvents = eventStore.events(matching: predicate)
         let limitedEvents = limit != nil ? Array(ekEvents.prefix(limit!)) : ekEvents
@@ -41,11 +59,23 @@ class AppleCalendarProvider: CalendarProvider {
     }
 
     func getEvent(with id: String) async throws -> CalendarEvent? {
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         guard let ekEvent = eventStore.event(withIdentifier: id) else { return nil }
         return convertToCalendarEvent(ekEvent: ekEvent)
     }
 
     func createEvent(with event: CalendarEvent) async throws -> CalendarEvent {
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         let ekEvent = EKEvent(eventStore: eventStore)
         updateEKEvent(ekEvent: ekEvent, with: event)
         try eventStore.save(ekEvent, span: .thisEvent)
@@ -53,6 +83,12 @@ class AppleCalendarProvider: CalendarProvider {
     }
 
     func updateEvent(with event: CalendarEvent, recurrenceEditingScope: RecurringEventEditScope?) async throws -> CalendarEvent {
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         guard let ekEvent = eventStore.event(withIdentifier: event.id) else { throw NSError(domain: "AppleCalendarProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "Event not found"]) }
         updateEKEvent(ekEvent: ekEvent, with: event)
         let span: EKSpan = recurrenceEditingScope == .thisAndFuture ? .futureEvents : .thisEvent
@@ -60,7 +96,13 @@ class AppleCalendarProvider: CalendarProvider {
         return convertToCalendarEvent(ekEvent: ekEvent)
     }
 
-    func deleteEvent(in calendar: Calendar, id: String) async throws {
+    func deleteEvent(in calendar: CalendarM, id: String) async throws {
+        requestCalendarAccessIfNeeded { granted, error in
+            if !granted {
+                print("Access to Calendar denied: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+        }
         guard let ekEvent = eventStore.event(withIdentifier: id) else { return }
         try eventStore.remove(ekEvent, span: .thisEvent)
     }
@@ -68,7 +110,7 @@ class AppleCalendarProvider: CalendarProvider {
     // MARK: - Helper Methods
 
     private func convertToCalendarEvent(ekEvent: EKEvent) -> CalendarEvent {
-        let calendar = Calendar(
+        let calendar = CalendarM(
             id: ekEvent.calendar.calendarIdentifier,
             title: ekEvent.calendar.title,
             canAddEvents: ekEvent.calendar.allowsContentModifications,
@@ -146,4 +188,63 @@ class AppleCalendarProvider: CalendarProvider {
             ekEvent.recurrenceRules = nil
         }
     }
+    private func updateRecurrenceRules(for ekEvent: EKEvent, with recurrenceRules: [RecurrenceRule]) {
+        ekEvent.recurrenceRules = recurrenceRules.compactMap { rule -> EKRecurrenceRule? in
+            let frequency: EKRecurrenceFrequency
+            switch rule.frequency {
+            case .daily: frequency = .daily
+            case .weekly: frequency = .weekly
+            case .monthly: frequency = .monthly
+            case .yearly: frequency = .yearly
+            }
+
+            var ekDaysOfTheWeek: [EKRecurrenceDayOfWeek]? = nil
+            if let daysOfTheWeek = rule.daysOfTheWeek {
+                ekDaysOfTheWeek = daysOfTheWeek.map { EKRecurrenceDayOfWeek(dayOfTheWeek: EKWeekday(rawValue: $0.dayOfTheWeek)!, weekNumber: $0.weekNumber) }
+            }
+
+            let ekRecurrenceEnd = rule.endDate != nil ? EKRecurrenceEnd(end: rule.endDate!) : nil
+
+            // Convert [Int]? to [NSNumber]? for the parameters expected by EKRecurrenceRule
+            let ekDaysOfTheMonth = rule.daysOfTheMonth?.map(NSNumber.init)
+            let ekWeeksOfTheYear = rule.weeksOfTheYear?.map(NSNumber.init)
+            let ekDaysOfTheYear = rule.daysOfTheYear?.map(NSNumber.init)
+            let ekSetPositions = rule.setPositions?.map(NSNumber.init)
+
+            return EKRecurrenceRule(
+                recurrenceWith: frequency,
+                interval: rule.interval,
+                daysOfTheWeek: ekDaysOfTheWeek,
+                daysOfTheMonth: ekDaysOfTheMonth,
+                monthsOfTheYear: nil, // Structure does not include monthsOfTheYear.
+                weeksOfTheYear: ekWeeksOfTheYear,
+                daysOfTheYear: ekDaysOfTheYear,
+                setPositions: ekSetPositions,
+                end: ekRecurrenceEnd
+            )
+        }
+    }
+    
+    private func requestCalendarAccessIfNeeded(completion: @escaping (Bool, Error?) -> Void) {
+        // Check the current authorization status
+        let status = EKEventStore.authorizationStatus(for: .event)
+        
+        switch status {
+        case .authorized:
+            // Access has already been granted
+            completion(true, nil)
+        case .notDetermined:
+            // Request access if the status is not determined
+            eventStore.requestFullAccessToEvents{ (granted, error) in
+                DispatchQueue.main.async {
+                    completion(granted, error)
+                }
+            }
+        default:
+            // Access denied or restricted
+            completion(false, nil)
+        }
+    }
+    
+
 }
