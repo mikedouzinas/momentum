@@ -13,51 +13,50 @@ struct MomentumView: View {
     @State private var showLoading = false  // State to control the visibility of the loading view
     
     var body: some View {
-        GeometryReader { geometry in
-            VStack {
-                // Positioned text above the center
-                Spacer()
-                ScrollView {
+        VStack {
+            // Positioned text above the center
+            Spacer()
+            ScrollView {
+                HStack(spacing: 0) {
+                    Spacer()
                     Text(transcribedText)
                         .multilineTextAlignment(.leading)
-                        .frame(width: geometry.size.width * 0.8, alignment: .leading)
                         .padding([.leading], 20.0)
                         .padding(.top, 10)
-                    
-                    if showLoading {
-                        LoadingView()
-                            .frame(width: geometry.size.width * 0.8, height: 350)
-                    }
+                    Spacer()
                 }
-                .frame(width: geometry.size.width * 0.8, height: 350)
-                .background(Color.gray.opacity(0.3))
-                .cornerRadius(10)
-                .padding(.bottom, 60)
-                .allowsHitTesting(!showLoading) // Disable hit testing when loading view is visible
-
-                // Main Button centered in the middle
-                Button(action: toggleRecording) {
-                    Image("logo") // Placeholder for actual logo
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 100, height: 100)
-                        .background(isRecording ? Color.gray : Color.white)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(isRecording ? Color.red : Color.blue, lineWidth: 5)
-                                .scaleEffect(animationAmount)
-                                .opacity(Double(2 - animationAmount))
-                                .animation(isRecording ? Animation.easeInOut(duration: 1).repeatForever(autoreverses: true) : .default, value: animationAmount)
-                        )
+                
+                if showLoading {
+                    LoadingView()
                 }
-                .buttonStyle(PlainButtonStyle())
-                .animation(.easeInOut, value: isRecording)
-                .frame(width: geometry.size.width) // Force the button to occupy the full width of the GeometryReader
-                Spacer()
             }
+            .frame(height: 350)
+            .background(Color.gray.opacity(0.3))
+            .cornerRadius(20)
+            .padding(.horizontal, 30)
+            .padding(.bottom, 60)
+            .allowsHitTesting(!showLoading) // Disable hit testing when loading view is visible
+
+            // Main Button centered in the middle
+            Button(action: toggleRecording) {
+                Image("logo") // Placeholder for actual logo
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 100, height: 100)
+                    .background(isRecording ? Color.gray : Color.white)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(isRecording ? Color.red : Color.blue, lineWidth: 5)
+                            .scaleEffect(animationAmount)
+                            .opacity(Double(2 - animationAmount))
+                            .animation(isRecording ? Animation.easeInOut(duration: 1).repeatForever(autoreverses: true) : .default, value: animationAmount)
+                    )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .animation(.easeInOut, value: isRecording)
+            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func toggleRecording() {

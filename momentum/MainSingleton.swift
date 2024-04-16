@@ -5,6 +5,11 @@ let useExperimentalAdaptiveQueueTTS = false
 @Observable
 class MainSingleton: AssistantMainObject {
     init() {
+        let calendarProvider = MockCalendarProvider()
+        self.calendarProvider = calendarProvider
+        self.supportedActions = [
+            BuiltInActions().getCalendars(withCalendarProvider: calendarProvider)
+        ]
         self.initialize()
         Task.detached {
             // this is programming horror but michel is lazy and desperate.
@@ -21,6 +26,7 @@ class MainSingleton: AssistantMainObject {
     
     private var textToSpeechBufferedText = ""
     private var textToSpeech: TextToSpeech?
+    private var calendarProvider: CalendarProvider
     
     private func speakText(_ text: String) async {
         await textToSpeech!.speakText(text, waitUntilOutput: false)
@@ -74,9 +80,7 @@ class MainSingleton: AssistantMainObject {
     
     private var assistant: Assistant? = nil
     
-    let supportedActions: [Action] = [
-        
-    ]
+    let supportedActions: [Action]
     
     func initialize() {
         Task.detached {

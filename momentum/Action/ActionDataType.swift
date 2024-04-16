@@ -5,6 +5,7 @@ indirect enum ActionDataType {
     case double
     case bool
     case string
+    case dict([String: ActionDataType])
     
     func describe() -> String {
         switch self {
@@ -20,6 +21,8 @@ indirect enum ActionDataType {
             return "Bool"
         case .string:
             return "String"
+        case .dict(let keysAndValueTypes):
+            return "Dict[\n" + keysAndValueTypes.map { "\($0): \($1.describe())" }.joined(separator: ",\n") + "\n]"
         }
     }
 }

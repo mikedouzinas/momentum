@@ -39,6 +39,13 @@ fileprivate func typeToJson(type: ActionDataType, shouldIgnoreOptional: Bool) ->
         return .init(type: .boolean)
     case .string:
         return .init(type: .string)
+    case .dict(let keysAndValueTypes):
+        return .init(
+            type: .object,
+            properties: keysAndValueTypes.mapValues({ actionDataType in
+                typeToJson(type: actionDataType, shouldIgnoreOptional: false)
+            })
+        )
     }
 }
 

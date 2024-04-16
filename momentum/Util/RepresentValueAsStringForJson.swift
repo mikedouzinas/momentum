@@ -14,6 +14,10 @@ func representValueAsStringForJson(_ value: Any?) -> String {
     } else if let array = value as? [Any] {
         let jsonArray = array.map { representValueAsStringForJson($0) }.joined(separator: ", ")
         return "[\(jsonArray)]"
+    } else if let dict = value as? [String: Any] {
+        let jsonDict = dict.mapValues { representValueAsStringForJson($0) }
+        let jsonString = jsonDict.map { "\"\($0.key)\": \($0.value)" }.joined(separator: ", ")
+        return "{\(jsonString)}"
     } else {
         return "null"
     }
