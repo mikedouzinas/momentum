@@ -5,13 +5,15 @@ extension BuiltInActions {
             description: "Gets all of the user's calendars.",
             inputs: [ ],
             output: .init(
-                type: .dict([
-                    "id": .string,
-                    "title": .string,
-                    "canAddEvents": .bool,
-                    "canEditEvents": .bool,
-                    "canReadEvents": .bool
-                ]),
+                type: .array(
+                    of: .dict([
+                        "id": .string,
+                        "title": .string,
+                        "canAddEvents": .bool,
+                        "canEditEvents": .bool,
+                        "canReadEvents": .bool
+                    ])
+                ),
                 description: "Data about all of the user's calendars, including their ID, title, and access control information"
             ),
             displayTitle: "Get Calendars",

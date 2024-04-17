@@ -17,18 +17,9 @@ class MockTodoProvider: TodoProvider {
         return todos.filter { $0.source.id == source.id }
     }
     
-    func createTodo(for source: TodoSource) async throws -> Todo {
-        let newTodo = Todo(
-            id: UUID().uuidString,
-            source: source,
-            title: source.title,
-            description: source.id.description,
-            completed: false,
-            doDate: nil,
-            deadline: nil
-        )
-        todos.append(newTodo)
-        return newTodo
+    func createTodo(for source: TodoSource, todo: Todo) async throws -> Todo {
+        todos.append(todo)
+        return todo
     }
     
     func updateTodo(todo: Todo) async throws -> Todo {

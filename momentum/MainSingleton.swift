@@ -7,8 +7,20 @@ class MainSingleton: AssistantMainObject {
     init() {
         let calendarProvider = MockCalendarProvider()
         self.calendarProvider = calendarProvider
+        let todoProvider = MockTodoProvider()
+        self.todoProvider = todoProvider
         self.supportedActions = [
-            BuiltInActions().getCalendars(withCalendarProvider: calendarProvider)
+            BuiltInActions().getCalendars(withCalendarProvider: calendarProvider),
+            BuiltInActions().getEvents(withCalendarProvider: calendarProvider),
+            BuiltInActions().createEvent(withCalendarProvider: calendarProvider),
+            BuiltInActions().updateEvent(withCalendarProvider: calendarProvider),
+            BuiltInActions().deleteEvent(withCalendarProvider: calendarProvider),
+            
+            BuiltInActions().getTodoSources(withTodoProvider: todoProvider),
+            BuiltInActions().getTodos(withTodoProvider: todoProvider),
+            BuiltInActions().createTodo(withTodoProvider: todoProvider),
+            BuiltInActions().updateTodo(withTodoProvider: todoProvider),
+            BuiltInActions().deleteTodo(withTodoProvider: todoProvider)
         ]
         self.initialize()
         Task.detached {
@@ -27,6 +39,7 @@ class MainSingleton: AssistantMainObject {
     private var textToSpeechBufferedText = ""
     private var textToSpeech: TextToSpeech?
     private var calendarProvider: CalendarProvider
+    private var todoProvider: TodoProvider
     
     private func speakText(_ text: String) async {
         await textToSpeech!.speakText(text, waitUntilOutput: false)
@@ -103,7 +116,7 @@ class MainSingleton: AssistantMainObject {
     
     func runUserCommand(_ text: String) {
         Task.detached {
-            await self.assistant?.handleUserQuery(message: text)
+            await self.assistant?.handleUserQuery(message: "Current system date: \(getDateString())\nUser query: \(text)")
         }
     }
     

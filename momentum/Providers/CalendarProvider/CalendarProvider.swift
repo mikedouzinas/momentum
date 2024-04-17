@@ -100,7 +100,9 @@ extension CalendarProvider {
             results.sort()
             
             if let limit = limit {
-                results = Array(results[..<limit])
+                if results.count > limit {
+                    results = Array(results[..<limit])
+                }
             }
             
             return results

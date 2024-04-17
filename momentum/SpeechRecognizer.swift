@@ -47,7 +47,7 @@ class SpeechRecognizer: ObservableObject {
         recognitionRequest = nil
 
         // Setup the audio session as before
-        try audioSession.setCategory(.playAndRecord, mode: .voiceChat)
+        try audioSession.setCategory(.playAndRecord, mode: .videoChat, options: .defaultToSpeaker)
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
 
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()

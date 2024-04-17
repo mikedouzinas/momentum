@@ -25,7 +25,7 @@ protocol TodoProvider {
     func getTodoSources() async throws -> [TodoSource]
     func getDefaultTodoSource() async throws -> TodoSource
     func getTodos(for source: TodoSource) async throws -> [Todo]
-    func createTodo(for source: TodoSource) async throws -> Todo
+    func createTodo(for source: TodoSource, todo: Todo) async throws -> Todo
     func updateTodo(todo: Todo) async throws -> Todo
     func deleteTodo(in source: TodoSource, id: String) async throws
 }

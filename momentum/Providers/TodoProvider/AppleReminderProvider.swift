@@ -78,7 +78,7 @@ class AppleReminderProvider: TodoProvider {
     }
 
 
-    func createTodo(for source: TodoSource) async throws -> Todo {
+    func createTodo(for source: TodoSource, todo: Todo) async throws -> Todo {
         requestRemindersAccessIfNeeded { granted, error in
             if !granted {
                 print("Access to Reminders denied: \(error?.localizedDescription ?? "Unknown error")")
